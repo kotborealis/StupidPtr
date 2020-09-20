@@ -180,15 +180,15 @@ TEST_CASE("SharedPtr") {
 
     SECTION("Copy") {
         REQUIRE(TestStruct::instances == 0);
-        {
-            SharedPtr<TestStruct> x(new TestStruct(123));
-            SharedPtr<TestStruct> y(x);
-            REQUIRE(TestStruct::instances == 1);
-            REQUIRE(x->value == y->value);
-            x->incr();
-            y->incr();
-            REQUIRE(x->value == y->value);
-        }
+        SharedPtr<TestStruct> x(new TestStruct(123));
+        SharedPtr<TestStruct> y(x);
+        REQUIRE(TestStruct::instances == 1);
+        REQUIRE(x->value == y->value);
+        x->incr();
+        y->incr();
+        REQUIRE(x->value == y->value);
+        x.reset();
+        y.reset();
         REQUIRE(TestStruct::instances == 0);
     }
 }

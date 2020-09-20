@@ -9,7 +9,7 @@ struct SharedMeta {
      */
     unsigned refCounter;
 
-    SharedMeta() : refCounter(0) {};
+    SharedMeta() : refCounter(1) {};
 
     ~SharedMeta() {};
 
@@ -45,7 +45,6 @@ public:
      * Инициализируем ресурс через nullptr
      */
     SharedPtr() : pointer(nullptr), meta(new SharedMeta) {
-        meta->acquire();
     };
 
     /**
@@ -54,16 +53,13 @@ public:
      */
     explicit SharedPtr(T *pointer)
             : pointer(pointer), meta(new SharedMeta) {
-        meta->acquire();
     };
 
     /**
      * Конструктор копирования
      * @param other
      */
-    SharedPtr(const SharedPtr<T> &other)
-            : pointer(nullptr), meta(new SharedMeta) {
-        destroy();
+    SharedPtr(const SharedPtr<T> &other) {
         this->pointer = other.pointer;
         this->meta = other.meta;
         meta->acquire();
@@ -76,6 +72,7 @@ public:
      */
     SharedPtr<T> &operator=(const SharedPtr<T> &other) {
         if (this == &other) return *this;
+        destroy();
         this->pointer = other.pointer;
         this->meta = other.meta;
         meta->acquire();
@@ -132,7 +129,13 @@ public:
      * Сбросить умный указатель
      */
     void reset() {
-        destroy();
+        meta->release();
+        if (meta->refCounter == 0) {
+            delete meta;
+            delete pointer;
+        }
+        meta = new SharedMeta;
+        pointer = nullptr;
     }
 
     /**
@@ -140,9 +143,14 @@ public:
      * @param _pointer
      */
     void reset(T *_pointer) {
-        assert(_pointer == nullptr || _pointer != this->pointer);
-        destroy();
-        this->pointer = _pointer;
+        assert(_pointer == nullptr || _pointer != pointer);
+        meta->release();
+        if (meta->refCounter == 0) {
+            delete meta;
+            delete pointer;
+        }
+        meta = new SharedMeta;
+        pointer = _pointer;
     }
 
     /**
@@ -150,9 +158,11 @@ public:
      */
     void release() {
         meta->release();
+        if (meta->refCounter == 0) {
+            delete meta;
+        }
         pointer = nullptr;
         meta = new SharedMeta;
-        meta->acquire();
     }
 
     /**
@@ -181,7 +191,7 @@ private:
         if (meta->refCounter == 0) {
             delete pointer;
             delete meta;
-            pointer = nullptr;
         }
+        pointer = nullptr;
     }
 };
